@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="memberMapper">
+
+	<resultMap type="Member" id="memberRS">
+		<id property = "memberNo" column="MEMBER_NO"/>
+		<result property = "id" column="ID"/>	
+		<result property = "pwd" column ="PWD"/>
+		<result property = "name" column ="NAME"/>
+		<result property = "nickName" column ="NICKNAME"/>		
+		<result property = "email" column ="EMAIL"/>
+		<result property = "birth" column ="BIRTH"/>		
+		<result property = "phone" column ="PHONE"/>
+		<result property = "zip" column ="ZIP"/>		
+		<result property = "address" column ="ADDRESS"/>
+		<result property = "address2" column ="ADDRESS2"/>		
+		<result property = "grade" column ="GRADE"/>
+		<result property = "deleted" column ="DELETED"/>
+	</resultMap> 	
+	
+  	<select id="memberLogin" parameterType="Member" resultMap="memberRS">
+		select * 
+		from member
+		where id = #{id}
+			  and deleted = 'N'			  
+	</select>
+	
+ 	<insert id="memberJoin" parameterType="Member">
+		insert into member
+		values(seq_mno.nextval, #{id}, #{pwd}, #{name}, #{nickName}, #{email}, #{phone}, #{birth}, 
+				#{zip}, #{address}, #{address2}, 1, default)
+	</insert> 
+	
+	<select id="checkKaKao" resultMap="memberRS">
+		SELECT *
+		from member
+		where email = #{email}
+		and deleted = 'N'	
+	</select>
+
+ 	<insert id="kJoinMember" parameterType="Member">
+		insert into member
+		values(seq_mno.nextval, concat('kakao', seq_mno.currval), #{pwd}, #{name}, #{nickName}, #{email}, #{phone}, #{birth}, 
+				#{zip}, #{address}, #{address2}, 1, default)
+	</insert> 
+
+
+	<select id="checkIdDup" parameterType="string" resultType="_int">
+		select count(*)
+		from member
+		where id=#{id}
+	</select>
+	
+	<select id="checkNickDup" parameterType="string" resultType="_int">
+		select count(*)
+		from member
+		where nickName=#{nickName}
+	</select>
+	
+	<resultMap type="Photo" id="photoRS">
+		<id property = "photoNo" column="PHOTO_NO"/>
+		<result property = "boardNo" column="BOARD_NO"/>	
+		<result property = "targetNo" column ="TARGET_NO"/>
+		<result property = "fileLevel" column ="FILE_LEVEL"/>
+		<result property = "originName" column ="ORIGIN_NAME"/>		
+		<result property = "changeName" column ="CHANGE_NAME"/>	
+		<result property = "deleted" column ="DELETED"/>
+	</resultMap>  
+ 	
+	<insert id="uploadImage" parameterType="Photo">
+		insert into photo
+		values(seq_phn.nextval, 0, seq_mno.currval, 0, #{originName}, #{changeName}, default)
+	</insert>
+ 
+   	<select id="getPhoto" parameterType="Photo" resultType="string">
+		select change_name
+		from photo
+		where target_no = #{memberNo}
+			  and deleted = 'N'	
+			  and board_no = 0		  
+	</select>
+	
+	<update id="mDelete" parameterType="Member">
+		update member
+		set deleted='Y', id='${id}_del', nickName='${nickName}_del'		
+		where member_no = ${memberNo}
+	</update>	
+
+	<update id="mUpdate" parameterType="Member">
+		update member
+		set name=#{name}, nickName=#{nickName}, email=#{email}, phone=#{phone},
+			zip=#{zip}, address=#{address}, address2=#{address2}
+		where member_no=#{memberNo}
+	</update>
+
+	<update id="updateImage" parameterType="Photo">
+		update photo
+		set origin_name = #{originName}, change_name = #{changeName}
+		where target_no=#{targetNo}
+	</update>
+	
+	<insert id="mUploadImage" parameterType="Photo">
+		insert into photo
+		values(seq_phn.nextval, 0, #{targetNo}, 0, #{originName}, #{changeName}, default)
+	</insert>	
+	
+	<update id="pwdUpdate" parameterType="Member">
+		update member
+		set pwd=#{pwd}
+		where member_no=#{memberNo}
+	</update>
+	
+	<select id="findId" parameterType="Member" resultType="string">
+		select id from member where name=#{name} and email=#{email}
+	</select>
+	
+	<update id="updatePwd" parameterType="Member">
+		update member set pwd=#{pwd} where id=#{id}
+	</update>
+
+	
+
+	<resultMap type="OrderInfo" id="oiRS">
+		<result property = "orderNo" column="ORDER_NO"/>
+		<result property = "date" column="DATE"/>	
+		<result property = "total" column ="TOTAL"/>
+		<result property = "oList" column ="oList"/>	
+		<result property = "status" column ="STATUS"/>												
+	</resultMap>  
+	
+	<select id="mOrderCount" resultType="_int">
+		select count(*)
+		from "ORDER"
+		where mem_no=#{memberNo}
+	</select>
+	
+	<select id="orderSortCount" parameterType="Member" resultType="_int">
+		select count(*)
+		from "ORDER"
+		where mem_no=#{memberNo}	
+		<choose>
+			<when test="grade == 31">
+				and "DATE" BETWEEN SYSDATE - 31 AND SYSDATE
+			</when>			
+			<when test="grade == 91">
+				and "DATE" BETWEEN SYSDATE - 91 AND SYSDATE
+			</when>		
+			<when test="grade == 181">
+				and "DATE" BETWEEN SYSDATE - 181 AND SYSDATE
+			</when>		
+			<when test="grade == 366">
+				and "DATE" BETWEEN SYSDATE - 366 AND SYSDATE
+			</when>										
+		</choose> 			
+	</select>
+	
+	<select id="orderSortList" parameterType="Member" resultMap="oiRS">
+		SELECT 
+				ORDER_NO, 
+		        "DATE",
+		        TOTAL,
+		        LISTAGG(NAME, ', ') WITHIN GROUP (ORDER BY NAME) AS "oList", STATUS
+		FROM ODLIST
+		where mem_no = #{memberNo}
+		<choose>
+			<when test="grade == 31">
+				and "DATE" BETWEEN SYSDATE - 31 AND SYSDATE
+			</when>			
+			<when test="grade == 91">
+				and "DATE" BETWEEN SYSDATE - 91 AND SYSDATE
+			</when>		
+			<when test="grade == 181">
+				and "DATE" BETWEEN SYSDATE - 181 AND SYSDATE
+			</when>		
+			<when test="grade == 366">
+				and "DATE" BETWEEN SYSDATE - 366 AND SYSDATE
+			</when>										
+		</choose> 		
+		group by "DATE", TOTAL, STATUS, ORDER_NO 
+		order by "DATE" desc
+	</select>
+	
+	<select id="orderList" resultMap="oiRS">
+		SELECT 
+				ORDER_NO, 
+		        "DATE",
+		        TOTAL,
+		        LISTAGG(NAME, ', ') WITHIN GROUP (ORDER BY NAME) AS "oList", STATUS
+		FROM ODLIST
+		where mem_no = #{memberNo}
+		group by "DATE", TOTAL, STATUS, ORDER_NO 
+		order by "DATE" desc
+	</select>	
+	
+	<resultMap type="mOrderDetail" id="odRS">
+		<result property = "orderNo" column="ORDER_NO"/>
+		<result property = "date" column="DATE"/>	
+		<result property = "total" column ="TOTAL"/>
+		<result property = "oList" column ="oList"/>	
+		<result property = "pName" column ="PNAME"/>		
+		<result property = "mName" column ="MNAME"/>
+		<result property = "phName" column ="PHNAME"/>		
+		<result property = "detailNo" column ="DETAIL_NO"/>
+		<result property = "prCount" column ="PR_COUNT"/>
+		<result property = "productNo" column ="PRODUCT_NO"/>
+		<result property = "price" column ="PRICE"/>
+		<result property = "memNo" column ="MEM_NO"/>
+		<result property = "status" column ="STATUS"/>
+		<result property = "zip" column ="ZIP"/>
+		<result property = "address" column ="ADDRESS"/>
+		<result property = "address2" column ="ADDRESS2"/>
+		<result property = "note" column ="NOTE"/>
+		<result property = "phone" column ="PHONE"/>
+		<result property = "reviewed" column="REVIEWED"/>											
+	</resultMap> 
+		
+	<select id="orderDetail" resultMap="odRS">
+		SELECT P.NAME AS "PNAME", M.NAME AS "MNAME", CHANGE_NAME AS "PHNAME", "DATE", DETAIL_NO, O.ORDER_NO, PR_COUNT, P.PRICE, MEM_NO, STATUS, O.ZIP, O.ADDRESS, O.ADDRESS2, 
+		        O.NOTE, O.PHONE, O.TOTAL, OD.PRODUCT_NO
+		FROM ORDER_DETAIL OD
+		            JOIN "ORDER" O ON(OD.ORDER_NO = O.ORDER_NO)
+		            JOIN "MEMBER" M ON(MEM_NO = MEMBER_NO)
+		            JOIN PRODUCT P ON(P.PRODUCT_NO = OD.PRODUCT_NO)
+		            LEFT OUTER JOIN PHOTO ON(p.product_no = TARGET_NO AND BOARD_NO = 3)
+		WHERE O.ORDER_NO = #{no} 
+		order by P.NAME 	
+	</select>
+
+	<select id="goWriteRv" resultMap="odRS">
+		SELECT P.NAME AS "PNAME", CHANGE_NAME AS "PHNAME", "DATE", DETAIL_NO, O.ORDER_NO, PR_COUNT, P.PRICE, STATUS, REVIEWED, OD.PRODUCT_NO
+		FROM ORDER_DETAIL OD
+		            JOIN "ORDER" O ON(OD.ORDER_NO = O.ORDER_NO)
+		            JOIN PRODUCT P ON(P.PRODUCT_NO = OD.PRODUCT_NO)
+		            LEFT OUTER JOIN PHOTO ON(p.product_no = TARGET_NO AND BOARD_NO = 3)
+		WHERE O.ORDER_NO = #{orderNo} and REVIEWED = 'N'
+		order by P.NAME		
+	</select>
+
+
+	<select id="selectPwd" resultMap="memberRS">
+		select * from member where id=#{id} and email=#{email}
+	</select>
+		
+	<update id="orderStatus" parameterType="Order">
+		update "ORDER"
+		<choose>
+			<when test="status == 0">
+				set status = 4
+			</when>			
+			<when test="status == 1">
+				set status = 2
+			</when>							
+		</choose>	
+		where order_no = #{orderNo}
+	</update>	
+
+	<resultMap type="Reply" id="replyResultSet">
+		<id property="replyNo"  column="REPLY_NO"/>
+		<result property="nickName" column="NICKNAME"/>
+		<result property="boardNo" column="BOARD_NO"/>
+		<result property="targetNo" column="TARGET_NO"/>
+		<result property="content" column="CONTENT"/>
+		<result property="createDate" column="CREATE_DATE"/>
+		<result property="modifyDate" column="MODIFY_DATE"/>
+		<result property="rating" column="RATING"/>
+		<result property="deleted" column="DELETED"/>
+		<result property="pName" column="CHANGE_NAME"/>
+		<result property="rCount" column="RCOUNT"/>
+	</resultMap>
+
+	<select id="rvCount" resultType="_int">
+		select count(*)
+		from "REPLY"
+		where target_no=#{targetNo}	
+		and board_no=3			
+	</select>
+	
+	<insert id="insertRv" parameterType="ReplyPr">
+		insert into reply
+		values(seq_reply_no.nextval, #{memberNo}, 3, #{targetNo}, #{content}, default, default, #{rating}, default, #{etcNo})
+	</insert>
+	
+	<update id="updateRv" parameterType="orderDetail">
+		update "ORDER_DETAIL"
+		set "REVIEWED" = 'Y'
+		where "DETAIL_NO" = #{targetNo}
+	</update>
+	
+	<select id="orderCount" parameterType="orderDetail" resultType="_int">
+		select count(*)
+		from "ORDER_DETAIL"
+		where "ORDER_NO" = ${orderNo} and "REVIEWED" = 'N'
+	</select>
+	
+	<update id="upOS" parameterType="Order">
+		update "ORDER"
+		set "STATUS" = 3
+		where "ORDER_NO" = ${orderNo}
+	</update>
+	
+	<select id="searchOrderCount" parameterType="Member" resultType="_int">
+		select count(*)
+		FROM (SELECT 
+				ORDER_NO, 
+		        "DATE",
+		        TOTAL,
+		        LISTAGG(NAME, ', ') WITHIN GROUP (ORDER BY NAME) AS "oList", STATUS
+                FROM ODLIST
+                where mem_no = ${memberNo}
+                group by "DATE", TOTAL, STATUS, ORDER_NO 
+                order by "DATE" desc )
+		where "oList" like  '%'||'${email}'||'%'
+	</select>	
+
+	<select id="searchOrderList" parameterType="Member" resultMap="oiRS">
+		SELECT ORDER_NO, "DATE", "oList", STATUS, TOTAL
+		FROM (SELECT 
+				ORDER_NO, 
+		        "DATE",
+		        TOTAL,
+		        LISTAGG(NAME, ', ') WITHIN GROUP (ORDER BY NAME) AS "oList", STATUS
+                FROM ODLIST
+                where mem_no = ${memberNo}
+                group by "DATE", TOTAL, STATUS, ORDER_NO 
+                order by "DATE" desc )
+		where "oList" like  '%'||'${email}'||'%'
+		group by "DATE", TOTAL, STATUS, ORDER_NO, "oList"
+		order by "DATE" desc
+	</select>	
+	
+	<resultMap type="Follow" id="FollowResultSet">
+		<id property="targetNo" column="TARGET_NO"/>
+		<id property="memberNo" column="MEMBER_NO"/>
+		<result property="nickName" column="NICKNAME"/>
+		<result property="pName" column="CHANGE_NAME"/>
+		<result property="title" column="TITLE"/>
+	</resultMap>
+	
+	<insert id="insertFollow" parameterType="Follow">
+		insert into good
+		values(0,#{memberNo},#{targetNo})
+	</insert>
+	
+	<!-- <select id="selectFollow" resultMap="FollowResultSet">
+			select m.member_no, m.nickname, p.change_name
+			from member m
+			    join follow f on (m.member_no = f.member_no)
+			   left outer join photo p on(m.member_no = p.target_no)
+			where f.target_no = #{targetNo} and p.board_no = 0
+	</select> -->
+	
+	<select id="selectFollowing" resultMap="FollowResultSet">
+			select g.target_no, m.nickname, change_name
+		        from good g
+		            join member m on(g.target_no = m.member_no)
+		            left outer join photo p on(g.target_no = p.target_no and p.board_no=0 and p.file_level = 0)
+        where g.member_no = #{memberNo} and g.board_no =0
+	</select>
+	
+	<select id="selectFollower" resultMap="FollowResultSet">
+		 select g.member_no, m.nickname, change_name
+        from good g
+            join member m on(g.member_no = m.member_no)
+            left outer join photo p on(g.member_no = p.target_no and p.board_no=0 and p.file_level = 0)
+        where g.target_no = #{targetNo} and g.board_no =0
+	</select>
+	
+	<delete id="deleteFollow"  parameterType="Follow" >
+		delete from good
+		where target_no = #{targetNo} and member_no=#{memberNo}
+	</delete>
+	<delete id="deleteFollower"  parameterType="Follow">
+		delete from good
+		where member_no = #{targetNo} and target_no=#{memberNo}
+	</delete>
+	
+	<select id="selectChefNews" resultMap="FollowResultSet">
+		select g.target_no, m.nickname, change_name
+        from good g
+            join member m on(g.target_no = m.member_no)
+            left outer join photo p on(g.target_no = p.target_no)
+             left outer join r_board r on(r.member_no = m.member_no)
+        where g.member_no = #{memberNo} and g.board_no =0
+        order by r.create_date desc
+	</select> 
+<!-- 	<select id="selectChefNews" resultMap="FollowResultSet">
+		select m.member_no, m.nickname, change_name,r.title
+        from good g
+           join member m on(g.target_no = m.member_no)    
+            left outer join r_board r on(r.member_no = m.member_no)
+           left outer join photo p on(r.post_no = p.target_no)
+        where g.member_no =#{memberNo}  and p.file_level=0 and p.board_no=1 and g.board_no=0
+        order by create_date desc
+	</select> -->
+	
+		<resultMap id="recipeListMap" type="RecipePreView">
+		<id property="postNo" column="POST_NO"/>
+		<result property="title" column="TITLE"/>
+		<result property="thumb" column="CHANGE_NAME"/>
+		<result property="rating" column="RATE"/>
+		<result property="hit" column="HIT"/>
+	</resultMap>
+<!-- 	<select id="selectChefUpdate" resultMap =  "recipeListMap">
+	select title, change_name, member_no, create_date
+	from r_board r
+    left outer join photo p on(member_no = target_no)
+    where member_no = #{targetNo}
+    order by create_date desc
+	</select> -->
+	<select id="selectChefUpdate" parameterType="Follow" resultMap ="recipeListMap">
+	
+	select f.member_no,p.change_name, r.title
+        from follow f
+            left outer join photo p on(f.member_no = p.target_no)
+            join r_board r on(f.member_no = r.member_no )
+        where f.target_no =#{targetNo}
+     </select>
+     
+     <select id="selectChefUpdateNews" resultMap="FollowResultSet">
+     	    select m.member_no, change_name,r.title
+        from good g
+           join member m on(g.target_no = m.member_no)    
+            left outer join r_board r on(r.member_no = m.member_no)
+           left outer join photo p on(r.post_no = p.target_no)
+        where g.member_no =#{memberNo}  and p.file_level=0 and p.board_no=1 and g.board_no=0
+        order by create_date desc
+     </select>
+
+
+</mapper>
